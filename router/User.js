@@ -41,11 +41,11 @@ router.get('/login', async (req, res) => {
             if(!comparepassword){
                 return res.status(200).json("Wrong password");
             }else{
-                jwt.sign({ id: user._id, username: user.username },
+                 accessToken = jwt.sign({ id: user._id, username: user.username },
                 process.env.JWT_SECRET);
             }
             const {password, ...others} = user._doc;
-            return res.status(200).json({others});
+            return res.status(200).json({others, accessToken});
         } 
     } catch (err) {
         res.status(400).json("Internal Server Error");
