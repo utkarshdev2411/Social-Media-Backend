@@ -1,3 +1,4 @@
+
 const mongoose = require('mongoose');
 const PostSchema = new mongoose.Schema({
     user: {
@@ -6,7 +7,6 @@ const PostSchema = new mongoose.Schema({
     },
     title: {
         type: String,
-
     },
     image: {
         type: String,
@@ -22,8 +22,10 @@ const PostSchema = new mongoose.Schema({
             comments: { type: String, required: true }
         }
     ],
-
-
-}, { timestamp: true });
+    timestamp: {
+        type: Boolean,
+        default: true
+    }
+},{timestamps:true});
 
 module.exports = mongoose.model('Post', PostSchema);
