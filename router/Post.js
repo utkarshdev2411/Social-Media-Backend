@@ -55,6 +55,28 @@ router.put('/:id/like', verifyToken, async (req, res) => {
     
     });
     
+    router.put('/comment/post', verifyToken, async (req, res) => {
+
+        try {
+            const { comment, postid, profile } = req.body;
+
+            const comments = {
+                user: req.user.id,
+                username: req.user.username,
+                profile,
+                comment
+            }
+            const post = await Post.findById(postid);
+            post.comments.push(comments);
+            await post.save();
+            return res.status(200).json(post);
+
+        } catch (error) {
+            res.status(500).json(error);
+            console.log(error);
+        }
+
+    });
 
 
-module.exports = router;
+    module.exports = router;

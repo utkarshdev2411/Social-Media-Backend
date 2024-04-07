@@ -19,7 +19,7 @@ const PostSchema = new mongoose.Schema({
             user: { type: mongoose.Schema.Types.ObjectId, required: true },
             username: { type: String, required: true },
             profile: { type: String },
-            comments: { type: String, required: true }
+            comment: { type: String, required: true }
         }
     ],
     timestamp: {
