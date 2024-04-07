@@ -105,6 +105,36 @@ router.put("/:id/follow", verifyToken, async (req, res) => {
 
 
 
+router.get("/flw", verifyToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id
+        );
+        const followersPost = await Promise.all(
+            user.followings.map((items) => {
+                return Post.find(items);
+            })
+        );
+        const userPost = await Post.find({ user: user._id });
+        const filterProduct = userPost.concat(...followersPost);
+
+        filterProduct.forEach((p) => {
+            const postAge = new Date - new Date(p.createdAt);
+            const ageWeight = 1 - postAge / (1000 * 60 * 60 * 24); //weight decreased as post gets older
+            const likeWeight = p.likes.length / 100; //weight increased as likes increase
+            const commentWeight = p.comments.length / 100; //weight increased as comments increase
+            p.weight = ageWeight + likeWeight + commentWeight;
+
+        }
+        );
+
+        filterProduct.sort((a, b) => b.weight - a.weight);
+        return res.status(200).json(filterProduct);
+
+    } catch (err) {
+        res.status(500).json("Internal Server Error");
+    }
+}
+);
 
 
 
