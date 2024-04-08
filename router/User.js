@@ -11,7 +11,7 @@ const Post = require('../Modal/Post');
 router.post('/new/user', async (req, res) => {
 
     try {
-   
+
 
         let user = await User.findOne({ email: req.body.email });
 
@@ -36,22 +36,22 @@ router.post('/new/user', async (req, res) => {
 
 router.get('/login', async (req, res) => {
 
-  
+
     try {
 
         let user = await User.findOne({ email: req.body.email });
 
         if (user) {
             const comparepassword = bcrypt.compareSync(req.body.password, user.password);
-            if(!comparepassword){
+            if (!comparepassword) {
                 return res.status(200).json("Wrong password");
-            }else{
-                 accessToken = jwt.sign({ id: user._id, username: user.username },
-                process.env.JWT_SECRET);
+            } else {
+                accessToken = jwt.sign({ id: user._id, username: user.username },
+                    process.env.JWT_SECRET);
             }
-            const {password, ...others} = user._doc;
-            return res.status(200).json({others, accessToken});
-        } 
+            const { password, ...others } = user._doc;
+            return res.status(200).json({ others, accessToken });
+        }
     } catch (err) {
         res.status(400).json("Internal Server Error");
     }
@@ -65,8 +65,8 @@ router.put("/:id/follow", verifyToken, async (req, res) => {
 
             const user = await User.findById(req.params.id);
             const otheruser = await User.findById(req.body.user);
-      
-            
+
+
             if (!user.followers.includes(req.user.id)) {
                 await user.updateOne({ $push: { followers: req.body.user } });
                 await otheruser.updateOne({ $push: { following: req.params.id } });
@@ -96,8 +96,8 @@ router.get("/flw/:id", verifyToken, async (req, res) => {
         );
         const userPost = await Post.find({ user: user._id });
         const filterProduct = userPost.concat(...followersPost);
-        
-        filterProduct.forEach((p) => {  
+
+        filterProduct.forEach((p) => {
             const postAge = new Date - new Date(p.createdAt);
             const ageWeight = 1 - postAge / (1000 * 60 * 60 * 24); //weight decreased as post gets older
             const likeWeight = p.likes.length / 100; //weight increased as likes increase
@@ -105,7 +105,7 @@ router.get("/flw/:id", verifyToken, async (req, res) => {
             p.weight = ageWeight + likeWeight + commentWeight;
 
         }
-        ); 
+        );
 
         filterProduct.sort((a, b) => b.weight - a.weight);
         return res.status(200).json(filterProduct);
@@ -116,5 +116,72 @@ router.get("/flw/:id", verifyToken, async (req, res) => {
     }
 }
 );
+
+router.get("/all/user/:id", verifyToken, async (req, res) => {
+    try {
+        const allUser = await User.find();
+        const user = await User.findById(req.params.id);
+        const followinguser = await Promise.all(
+            user.followings.map((item) => {
+                return item;
+            })
+        );
+
+        let userToFollow = allUser.filter((val) => {
+            return !followinguser.find((item) => {
+                return val._id.toString() === item;
+            })
+        })
+
+        
+        let filterUser = await Promise.all(
+            userToFollow.map((item) => {
+                const { email, followers, followings, password, ...others } = item;
+                if (others._id) { // Check if _id exists before calling toString()
+                    others._id = others._id.toString(); // Convert ObjectId to string
+                }
+                return others;
+                }
+        ))
+         res.status(200).json(filterUser);
+    } catch (err) {
+        res.status(500).json("Internal Server Error");
+        console.log(err);
+    }
+
+});
+
+// router.get("/all/user/:id", verifyToken, async (req, res) => {
+//     try {
+//         const allUser = await User.find();
+//         const user = await User.findById(req.params.id);
+//         const followinguser = await Promise.all( // Corrected here
+//             user.followings.map((item) => {
+//                 return item;
+//             })
+//         );
+
+//         let userToFollow = allUser.filter((val) => {
+//             return !followinguser.find((item) => {
+//                 return val._id.toString() === item;
+//             })
+//         })
+
+        
+//         let filterUser = await Promise.all(
+//             userToFollow.map((item) => {
+//                 const { email, followers, followings, password, ...others } = item._id;
+//                 return others;
+//                 }
+//         ))
+//          res.status(200).json(filterUser);
+//     } catch (err) {
+//         res.status(500).json("Internal Server Error");
+//         console.log(err);
+//     }
+
+// });
+
+
 
 module.exports = router;
