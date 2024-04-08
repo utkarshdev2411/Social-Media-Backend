@@ -2,6 +2,7 @@ const router = require('express').Router();
 const Post = require('../Modal/Post');
 const verifyToken = require('./verifyToken');
 
+
 router.post('/new/post', verifyToken, async (req, res) => {
 
     try {
@@ -76,65 +77,15 @@ router.put('/comment/post', verifyToken, async (req, res) => {
 
     } catch (error) {
         res.status(500).json("Internal Server Error");
+
     }
 
 });
 
 
 
-router.put("/:id/follow", verifyToken, async (req, res) => {
-    try {
-        if (req.user.id !== req.params.id) {
-
-            const user = await User.findById(req.params.id);
-            const otheruser = await User.findById(req.body.user);
-            if (!user.followers.includes(req.user.id)) {
-                await user.updateOne({ $push: { followers: req.body.user } });
-                await otheruser.updateOne({ $push: { following: req.params.id } });
-                res.status(200).json("user has been followed");
-            } else {
-                await user.updateOne({ $pull: { following: req.body.user } });
-                await otheruser.updateOne({ $pull: { followers: req.params.id } });
-                res.status(200).json("user has been unfollowed");
-            }
-        }
-    } catch (err) {
-        res.status(500).json("Internal Server Error");
-    }
-});
 
 
-
-router.get("/flw", verifyToken, async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id
-        );
-        const followersPost = await Promise.all(
-            user.followings.map((items) => {
-                return Post.find(items);
-            })
-        );
-        const userPost = await Post.find({ user: user._id });
-        const filterProduct = userPost.concat(...followersPost);
-
-        filterProduct.forEach((p) => {
-            const postAge = new Date - new Date(p.createdAt);
-            const ageWeight = 1 - postAge / (1000 * 60 * 60 * 24); //weight decreased as post gets older
-            const likeWeight = p.likes.length / 100; //weight increased as likes increase
-            const commentWeight = p.comments.length / 100; //weight increased as comments increase
-            p.weight = ageWeight + likeWeight + commentWeight;
-
-        }
-        );
-
-        filterProduct.sort((a, b) => b.weight - a.weight);
-        return res.status(200).json(filterProduct);
-
-    } catch (err) {
-        res.status(500).json("Internal Server Error");
-    }
-}
-);
 
 
 

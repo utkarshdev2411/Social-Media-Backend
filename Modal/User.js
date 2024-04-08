@@ -16,8 +16,8 @@ const UserSchema = new mongoose.Schema({
         type: String,
     },
 
-    folowers: { type: Array },
-    folowing: { type: Array },
+    followers: { type: Array },
+    followings: { type: Array },
 
     password: {
         type: String,
