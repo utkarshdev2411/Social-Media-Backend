@@ -133,17 +133,15 @@ router.get("/all/user/:id", verifyToken, async (req, res) => {
             })
         })
 
-        
+
         let filterUser = await Promise.all(
             userToFollow.map((item) => {
-                const { email, followers, followings, password, ...others } = item;
-                if (others._id) { // Check if _id exists before calling toString()
-                    others._id = others._id.toString(); // Convert ObjectId to string
-                }
+                const { email, followers, followings, password, ...others } = item._doc; //Used docs because we were getting buffer data
+
                 return others;
-                }
-        ))
-         res.status(200).json(filterUser);
+            }
+            ))
+        res.status(200).json(filterUser);
     } catch (err) {
         res.status(500).json("Internal Server Error");
         console.log(err);
@@ -151,36 +149,86 @@ router.get("/all/user/:id", verifyToken, async (req, res) => {
 
 });
 
-// router.get("/all/user/:id", verifyToken, async (req, res) => {
-//     try {
-//         const allUser = await User.find();
-//         const user = await User.findById(req.params.id);
-//         const followinguser = await Promise.all( // Corrected here
-//             user.followings.map((item) => {
-//                 return item;
-//             })
-//         );
+router.put("/update/password/:id", verifyToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (user) {
+            const comparepassword = await bcrypt.compareSync(req.body.oldpassword, user.password);
+            if (!comparepassword) {
+                return res.status(200).json("Wrong password");
+            }
 
-//         let userToFollow = allUser.filter((val) => {
-//             return !followinguser.find((item) => {
-//                 return val._id.toString() === item;
-//             })
-//         })
+            if (req.body.newPassword !== req.body.confirmPassword) {
+                return res.status(200).json("Password does not match");
+            }
+            else {
+                const salt = bcrypt.genSaltSync(10);
+                user.password = await bcrypt.hashSync(req.body.newPassword, salt);
+                await user.save();
+                res.status(200).json("Password has been updated");
+            }
+        }
+        else {
+            return res.status(200).json("User not found");
 
-        
-//         let filterUser = await Promise.all(
-//             userToFollow.map((item) => {
-//                 const { email, followers, followings, password, ...others } = item._id;
-//                 return others;
-//                 }
-//         ))
-//          res.status(200).json(filterUser);
-//     } catch (err) {
-//         res.status(500).json("Internal Server Error");
-//         console.log(err);
-//     }
+        }
+    } catch (err) {
+        res.status(500).json("Internal Server Error");
+        console.log(err);
+    }
+});
 
-// });
+
+router.get("/get/search/user", verifyToken, async (req, res) => {
+    try {
+        const keyword = req.query.keyword
+            ? {
+                $or: [
+                    { username: { $regex: req.query.keyword, $option: 'i' } },
+                    { email: { $regex: req.query.keyword, $option: 'i' } }
+                ]
+
+            } : "";
+        const user = await User.find({
+            _id: {
+                $ne: req.user.id
+            }
+        });
+        return res.status(200).json(user);
+    } catch (err) {
+        res.status(500).json("Internal Server Error");
+        console.log(err);
+    }
+}
+);
+
+
+router.get("/explore" , verifyToken, async (req, res) => {
+    try {
+      
+    
+        const userPost = await Post.find();
+
+    userPost.forEach((p) => {
+            const postAge = new Date - new Date(p.createdAt);
+            const ageWeight = 1 - postAge / (1000 * 60 * 60 * 24); //weight decreased as post gets older
+            const likeWeight = p.likes.length / 100; //weight increased as likes increase
+            const commentWeight = p.comments.length / 100; //weight increased as comments increase
+            p.weight = ageWeight + likeWeight + commentWeight;
+
+        } 
+        );
+
+        userPost.sort((a, b) => b.weight - a.weight);
+        return res.status(200).json(userPost);
+
+    } catch (err) {
+        res.status(500).json("Internal Server Error");
+        console.log(err)
+    }
+}
+);
+
 
 
 
